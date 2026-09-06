@@ -146,12 +146,16 @@ export function createApp(store, { uuid = () => crypto.randomUUID() } = {}) {
       if (!accept.includes('text/event-stream')) {
         // Not an MCP client — somebody has opened the URL in a browser. Say
         // what this is instead of returning a bare 405 at a human.
+        // Deliberately no `endpoint` field. Behind a rewriting router the
+        // request URL is not the public one, and printing a URL that does not
+        // resolve is worse than printing none — the caller already knows the
+        // address they used to get here.
         return json({
           server: SERVER, protocol: LATEST, transport: 'streamable-http',
-          endpoint: (req.headers.get('x-forwarded-proto') ?? url.protocol.replace(':', ''))
-            + '://' + (req.headers.get('host') ?? url.host) + url.pathname,
           tools: TOOLS.map((t) => t.name),
-          note: 'This is an MCP endpoint. Point an MCP client at it, or open the demo client.',
+          resources: RESOURCES.map((r) => r.uri),
+          note: 'This is an MCP endpoint. Point an MCP client at it, or open the demo client: '
+            + 'https://ramadandurguti.github.io/build-ship-shape/',
         }, 200, origin);
       }
       if (!sessionId) return json(rpcError(null, -32600, 'Missing MCP-Session-Id'), 400, origin);

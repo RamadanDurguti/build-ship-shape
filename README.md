@@ -166,7 +166,21 @@ npm test          # no install step — there are no dependencies
 
 The server is a plain `Request -> Response` function with the store passed in
 (`server/app.js`), and `server/index.ts` is five lines of Deno on top of it. That split is why the
-entire MCP surface can be exercised on a laptop before anything is deployed.
+entire MCP surface can be exercised on a laptop before anything is deployed — and why the whole
+product runs locally with no cloud account at all:
+
+```bash
+node server/local.js
+# → http://localhost:8787/?server=http://localhost:8787/mcp
+```
+
+That serves the Alexa+ client and mounts the same `app.js` at `/mcp`, backed by the in-memory
+store instead of Postgres. Nothing is stubbed: real protocol, real scheduler, real client. The
+hosted client takes the same `?server=` parameter, so you can point it at your own deployment.
+
+There is nothing to install for any of this. No dependencies, no build step, no bundler, and no
+web font — the page uses a system serif stack, so it renders identically offline and makes no
+third-party request to draw itself.
 
 ### Deploying your own
 
@@ -198,7 +212,8 @@ JWT. The service role key never leaves the function.
 
 ```
 core/      the scheduler — work, dwell, dependency, calendar. No model, no network.
-server/    the MCP server: transport, the seven tools, the store. app.js is runtime-agnostic.
+server/    the MCP server: transport, the seven tools, the store. app.js is runtime-agnostic,
+           index.ts is the Deno entry point, local.js runs the lot on a laptop.
 docs/      the Alexa+ experience, served from GitHub Pages. Talks to the live server.
 tests/     225 assertions across the engine and the protocol.
 supabase/  the migration.

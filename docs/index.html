@@ -1,0 +1,674 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dwell — an Alexa+ experience for jobs that spend their time waiting</title>
+<meta name="description" content="A simulated Alexa+ screen driving a real self-hosted MCP server. Move the clock and hear what the device would say.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ---------------------------------------------------------------------------
+   Two kinds of time, two colours, and the whole design follows from that.
+
+   Ochre is you: hands on it, in the room, doing the work. Slate is the job
+   getting on without you — filler going off, a coat drying, grout curing.
+   Every surface in here uses that pair and nothing else, so a glance from
+   across the kitchen tells you which kind of time you are in.
+--------------------------------------------------------------------------- */
+:root {
+  --ink:        #16130f;
+  --ink-2:      #1e1a15;
+  --ink-3:      #2a251e;
+  --line:       #3a3229;
+  --paper:      #f4efe6;
+  --paper-dim:  #a99e8d;
+  --paper-faint:#6f6656;
+
+  --work:       #e8a33d;   /* you, hands on */
+  --work-soft:  #7a5620;
+  --dwell:      #7fa8b8;   /* the room, working without you */
+  --dwell-soft: #33505c;
+
+  --radius: 22px;
+  --shadow: 0 30px 70px -30px rgba(0,0,0,.9);
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background:
+    radial-gradient(120% 90% at 50% -10%, #241f19 0%, var(--ink) 55%) fixed,
+    var(--ink);
+  color: var(--paper);
+  font: 400 16px/1.55 Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* ------------------------------------------------------------------ chrome */
+header {
+  width: 100%; max-width: 1180px;
+  display: flex; align-items: baseline; gap: 16px;
+  padding: 26px 24px 10px;
+}
+.brand {
+  font-family: Fraunces, Georgia, serif;
+  font-weight: 600; font-size: 21px; letter-spacing: .01em;
+}
+.brand span { color: var(--work); }
+.tag { color: var(--paper-faint); font-size: 13.5px; }
+header nav { margin-left: auto; display: flex; gap: 6px; }
+header button {
+  background: none; border: 1px solid var(--line); color: var(--paper-dim);
+  border-radius: 999px; padding: 6px 14px; font: inherit; font-size: 12.5px;
+  cursor: pointer; transition: .18s;
+}
+header button:hover { color: var(--paper); border-color: var(--paper-faint); }
+header button[aria-pressed="true"] { color: var(--ink); background: var(--paper); border-color: var(--paper); }
+
+main {
+  width: 100%; max-width: 1180px; padding: 0 24px 60px;
+  display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 26px;
+  align-items: start;
+}
+@media (max-width: 940px) { main { grid-template-columns: minmax(0,1fr); } }
+
+/* ------------------------------------------------------------------ device */
+.device {
+  background: linear-gradient(180deg, var(--ink-2), #191510);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  position: relative;
+  min-height: 520px;
+  display: flex; flex-direction: column;
+}
+/* The soft glow along the bottom edge of a screen that is listening. */
+.device::after {
+  content: ''; position: absolute; inset: auto 0 0 0; height: 3px;
+  background: linear-gradient(90deg, transparent, var(--dwell), transparent);
+  opacity: 0; transition: opacity .4s;
+}
+.device.listening::after { opacity: .9; animation: sweep 2.4s ease-in-out infinite; }
+@keyframes sweep { 0%,100% { opacity:.25 } 50% { opacity:1 } }
+
+.screen-top {
+  display: flex; align-items: center; gap: 12px;
+  padding: 16px 24px; border-bottom: 1px solid rgba(255,255,255,.05);
+  font-size: 12.5px; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--paper-faint);
+}
+.clock { color: var(--paper); letter-spacing: .02em; text-transform: none; font-size: 14px; }
+.jobcode {
+  margin-left: auto; font-size: 12px; letter-spacing: .1em;
+  color: var(--work); text-transform: uppercase;
+}
+
+.stage { padding: 34px 34px 26px; flex: 1; display: flex; flex-direction: column; gap: 22px; }
+
+/* The line the device says. Serif on purpose: it is speech, not interface. */
+.speech {
+  font-family: Fraunces, Georgia, serif;
+  font-weight: 300;
+  font-size: clamp(23px, 3.1vw, 34px);
+  line-height: 1.28;
+  letter-spacing: -.01em;
+  margin: 0;
+  max-width: 22ch;
+  min-height: 2.4em;
+}
+.speech.small { font-size: clamp(19px, 2.2vw, 25px); max-width: 30ch; }
+.speech em { font-style: normal; color: var(--work); }
+.speech .cool { color: var(--dwell); }
+
+.sub { color: var(--paper-dim); font-size: 14.5px; max-width: 46ch; margin: -8px 0 0; }
+
+/* -------------------------------------------------------------- the cards */
+.card { animation: rise .45s cubic-bezier(.2,.7,.2,1) both; }
+@keyframes rise { from { opacity: 0; transform: translateY(10px) } }
+
+.countdown {
+  display: flex; align-items: baseline; gap: 14px;
+  font-family: Fraunces, Georgia, serif; font-weight: 300;
+  font-size: clamp(46px, 8vw, 84px); line-height: 1; color: var(--dwell);
+}
+.countdown small { font-size: 15px; font-family: Inter, sans-serif; color: var(--paper-faint); letter-spacing: .04em; }
+
+.shop { list-style: none; margin: 0; padding: 0; max-width: 460px; }
+.shop li {
+  display: flex; align-items: baseline; gap: 14px;
+  padding: 11px 0; border-bottom: 1px solid rgba(255,255,255,.06);
+}
+.shop .qty { font-family: Fraunces, serif; font-size: 26px; color: var(--work); min-width: 4.2ch; }
+.shop .what { flex: 1; }
+.shop .have { color: var(--paper-faint); font-size: 13px; }
+
+.facts { display: flex; gap: 34px; flex-wrap: wrap; }
+.fact .n {
+  font-family: Fraunces, serif; font-weight: 300; font-size: 34px; line-height: 1.1;
+  display: block;
+}
+.fact.work .n  { color: var(--work); }
+.fact.dwell .n { color: var(--dwell); }
+.fact .l { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--paper-faint); }
+
+/* ------------------------------------------------------------- the ribbon */
+/* The signature object. The whole job as one strip: solid where your hands
+   are on it, translucent where the room is working without you. */
+.ribbon-wrap { margin-top: auto; }
+.ribbon-head {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-size: 11.5px; letter-spacing: .09em; text-transform: uppercase;
+  color: var(--paper-faint); margin-bottom: 9px;
+}
+.ribbon {
+  position: relative; height: 46px; border-radius: 8px;
+  background: rgba(255,255,255,.035);
+  overflow: hidden;
+}
+.ribbon .band { position: absolute; top: 10px; height: 26px; border-radius: 3px; }
+.ribbon .band.w { background: var(--work); box-shadow: 0 0 0 1px rgba(0,0,0,.25) inset; }
+.ribbon .band.d {
+  background: repeating-linear-gradient(115deg,
+    var(--dwell-soft) 0 6px, transparent 6px 12px);
+  border-top: 1px solid var(--dwell-soft); border-bottom: 1px solid var(--dwell-soft);
+}
+.ribbon .band.opt { opacity: .38; }
+.ribbon .band.done { filter: grayscale(.7) brightness(.6); }
+.ribbon .night { position: absolute; inset: 0 auto; top: 0; height: 100%; background: rgba(0,0,0,.28); }
+.ribbon .daymark { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(255,255,255,.13); }
+.ribbon .daylabel { position: absolute; top: 3px; font-size: 10px; color: var(--paper-faint); padding-left: 5px; letter-spacing: .05em; }
+.ribbon .now { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--paper); box-shadow: 0 0 12px rgba(244,239,230,.8); }
+
+.legend { display: flex; gap: 18px; margin-top: 10px; font-size: 11.5px; color: var(--paper-faint); }
+.legend i { display: inline-block; width: 16px; height: 8px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+.legend .w i { background: var(--work); }
+.legend .d i { background: repeating-linear-gradient(115deg, var(--dwell-soft) 0 4px, transparent 4px 8px); border: 1px solid var(--dwell-soft); }
+
+/* ------------------------------------------------------------- the clock */
+.controls { margin-top: 22px; }
+.scrub-label {
+  display: flex; justify-content: space-between; font-size: 11.5px;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--paper-faint); margin-bottom: 8px;
+}
+input[type=range] {
+  -webkit-appearance: none; appearance: none; width: 100%; height: 34px;
+  background: transparent; cursor: grab;
+}
+input[type=range]::-webkit-slider-runnable-track {
+  height: 2px; background: var(--line); border-radius: 2px;
+}
+input[type=range]::-moz-range-track { height: 2px; background: var(--line); }
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 16px; height: 16px; margin-top: -7px;
+  border-radius: 50%; background: var(--paper); border: none;
+  box-shadow: 0 0 0 6px rgba(244,239,230,.12);
+}
+input[type=range]::-moz-range-thumb {
+  width: 16px; height: 16px; border-radius: 50%; background: var(--paper); border: none;
+}
+
+.says { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+.says button {
+  background: rgba(255,255,255,.04); border: 1px solid var(--line);
+  color: var(--paper); border-radius: 999px; padding: 9px 16px;
+  font: inherit; font-size: 13.5px; cursor: pointer; transition: .16s;
+  text-align: left;
+}
+.says button:hover:not(:disabled) { background: rgba(232,163,61,.14); border-color: var(--work-soft); }
+.says button:disabled { opacity: .3; cursor: default; }
+.says button::before { content: '“'; color: var(--paper-faint); }
+.says button::after  { content: '”'; color: var(--paper-faint); }
+
+/* ------------------------------------------------------------------ aside */
+aside { display: flex; flex-direction: column; gap: 18px; position: sticky; top: 22px; }
+.panel {
+  background: rgba(255,255,255,.03); border: 1px solid var(--line);
+  border-radius: 16px; padding: 18px 18px 16px;
+}
+.panel h2 {
+  font-size: 11.5px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--paper-faint); margin: 0 0 12px; font-weight: 500;
+}
+.panel p { margin: 0 0 10px; font-size: 13.5px; color: var(--paper-dim); }
+.panel a { color: var(--dwell); }
+
+.wire { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; line-height: 1.5; }
+.wire ol { list-style: none; margin: 0; padding: 0; max-height: 460px; overflow-y: auto; }
+.wire li { padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,.06); }
+.wire .m { color: var(--work); }
+.wire .t { color: var(--paper-faint); }
+.wire pre { margin: 4px 0 0; white-space: pre-wrap; word-break: break-word; color: var(--paper-dim); }
+.wire .ok { color: var(--dwell); }
+
+.status { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--paper-dim); }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--paper-faint); }
+.dot.live { background: #6ec28a; box-shadow: 0 0 10px #6ec28a88; }
+.dot.bad  { background: #d1614f; }
+
+footer { color: var(--paper-faint); font-size: 12.5px; padding: 0 24px 40px; max-width: 1180px; width: 100%; }
+footer a { color: var(--dwell); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">Dwell<span>.</span></div>
+  <div class="tag">an Alexa+ experience for jobs that spend their time waiting</div>
+  <nav>
+    <button id="speakBtn" aria-pressed="true" title="Read the answers out loud">Voice</button>
+    <button id="wireBtn" aria-pressed="true" title="Show the MCP traffic">Wire</button>
+  </nav>
+</header>
+
+<main>
+  <section>
+    <div class="device" id="device">
+      <div class="screen-top">
+        <span class="clock" id="clock">—</span>
+        <span class="jobcode" id="jobcode"></span>
+      </div>
+
+      <div class="stage">
+        <p class="speech" id="speech">Say what you are doing this weekend.</p>
+        <p class="sub" id="sub">This screen is a stand-in for an Echo Show. Everything on it comes back from a real MCP server over Streamable HTTP — nothing here is scripted.</p>
+        <div id="card"></div>
+
+        <div class="ribbon-wrap">
+          <div class="ribbon-head"><span id="ribbonTitle">the whole job</span><span id="ribbonSpan"></span></div>
+          <div class="ribbon" id="ribbon"></div>
+          <div class="legend">
+            <span class="w"><i></i>your hands on it</span>
+            <span class="d"><i></i>drying, curing, proving</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="scrub-label"><span>move the clock</span><span id="scrubAt"></span></div>
+      <input type="range" id="scrub" min="0" max="100" value="0" step="0.25" aria-label="Move the clock">
+      <div class="says" id="says"></div>
+    </div>
+  </section>
+
+  <aside>
+    <div class="panel">
+      <h2>the server</h2>
+      <div class="status"><span class="dot" id="dot"></span><span id="statusText">connecting…</span></div>
+      <p style="margin-top:12px">Self-hosted MCP server, spec <strong>2025-11-25</strong>, Streamable HTTP. Seven tools, three resources, and a push stream that tells you the moment a coat is dry.</p>
+      <p><a id="endpointLink" href="#" target="_blank" rel="noopener">the endpoint</a> · <a href="https://github.com/RamadanDurguti/build-ship-shape" target="_blank" rel="noopener">the code</a></p>
+    </div>
+
+    <div class="panel wire" id="wirePanel">
+      <h2>on the wire</h2>
+      <ol id="wireList"></ol>
+    </div>
+  </aside>
+</main>
+
+<footer>
+  Dwell — built for the Build, Ship, Shape: Amazon Developer Hackathon, Alexa+ track.
+  The clock above is a real tool argument, not a mock: move it and the server answers for that moment.
+</footer>
+
+<script type="module">
+/* ---------------------------------------------------------------------------
+   A minimal MCP client, written out rather than pulled in, so that what goes
+   over the wire is visible in the panel on the right. Initialize once, keep
+   the session id, send the protocol version on everything after that.
+--------------------------------------------------------------------------- */
+const ENDPOINT = 'https://qsgtymzjelteotcjkbol.supabase.co/functions/v1/dwell-mcp';
+const PROTOCOL = '2025-11-25';
+
+const el = (id) => document.getElementById(id);
+const wireList = el('wireList');
+let showWire = true, speakOn = true;
+
+function logWire(method, payload, kind = 'call') {
+  const li = document.createElement('li');
+  li.innerHTML = `<span class="${kind === 'call' ? 'm' : 'ok'}">${kind === 'call' ? '→' : '←'} ${method}</span>`;
+  if (payload) {
+    const pre = document.createElement('pre');
+    pre.textContent = typeof payload === 'string' ? payload : JSON.stringify(payload, null, 1);
+    li.appendChild(pre);
+  }
+  wireList.prepend(li);
+  while (wireList.children.length > 24) wireList.lastChild.remove();
+}
+
+const mcp = {
+  session: null,
+  id: 0,
+  async send(method, params) {
+    const headers = { 'content-type': 'application/json', accept: 'application/json, text/event-stream' };
+    if (this.session) { headers['mcp-session-id'] = this.session; headers['mcp-protocol-version'] = PROTOCOL; }
+    logWire(method, params ?? null, 'call');
+    const res = await fetch(ENDPOINT, { method: 'POST', headers, body: JSON.stringify({
+      jsonrpc: '2.0', id: ++this.id, method, params,
+    })});
+    if (res.status === 404) { this.session = null; await this.connect(); return this.send(method, params); }
+    const sid = res.headers.get('mcp-session-id');
+    if (sid) this.session = sid;
+    const body = await res.json();
+    if (body.error) { logWire(method, body.error, 'ret'); throw new Error(body.error.message); }
+    return body.result;
+  },
+  async connect() {
+    const r = await this.send('initialize', {
+      protocolVersion: PROTOCOL, capabilities: {},
+      clientInfo: { name: 'dwell-echo-simulator', title: 'Dwell on Alexa+', version: '1.0.0' },
+    });
+    logWire('initialize', { protocolVersion: r.protocolVersion, server: r.serverInfo.name, session: this.session }, 'ret');
+    await fetch(ENDPOINT, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'mcp-session-id': this.session, 'mcp-protocol-version': PROTOCOL },
+      body: JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }),
+    });
+    return r;
+  },
+  async call(name, args) {
+    const r = await this.send('tools/call', { name, arguments: args });
+    logWire(name, r.structuredContent ?? r.content?.[0]?.text ?? null, 'ret');
+    return r;
+  },
+};
+
+/* --------------------------------------------------------------- the clock */
+// The demo runs on the coming weekend, so it always feels like now.
+function nextSaturday() {
+  const d = new Date();
+  d.setHours(9, 0, 0, 0);
+  d.setDate(d.getDate() + ((6 - d.getDay() + 7) % 7 || 7));
+  return d;
+}
+const SAT = nextSaturday();
+const SUN = new Date(SAT.getTime() + 864e5);
+const isoOff = (d) => {
+  const off = -d.getTimezoneOffset();
+  const s = off >= 0 ? '+' : '-';
+  const p = (n) => String(Math.floor(Math.abs(n))).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}:00${s}${p(off / 60)}:${p(off % 60)}`;
+};
+const at = (base, h, m = 0) => { const d = new Date(base); d.setHours(h, m, 0, 0); return d; };
+
+const FREE = [
+  { start: isoOff(at(SAT, 9)),  end: isoOff(at(SAT, 18)) },
+  { start: isoOff(at(SUN, 10)), end: isoOff(at(SUN, 16)) },
+];
+const TZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+const state = {
+  job: null, plan: null, now: at(SAT, 9, 0),
+  spanFrom: at(SAT, 8), spanTo: at(SUN, 23),
+  done: new Set(),
+};
+
+const fmtClock = (d) => d.toLocaleString('en-GB',
+  { weekday: 'long', hour: '2-digit', minute: '2-digit', hour12: false });
+
+/* ------------------------------------------------------------- the ribbon */
+function drawRibbon() {
+  const r = el('ribbon');
+  r.innerHTML = '';
+  const from = state.spanFrom.getTime(), to = state.spanTo.getTime();
+  const pct = (t) => ((new Date(t).getTime() - from) / (to - from)) * 100;
+
+  // Night first, so it sits under everything: the hours nobody is working
+  // but the paint still is.
+  for (let d = new Date(state.spanFrom); d < state.spanTo; d.setDate(d.getDate() + 1)) {
+    const dusk = at(d, 20), dawn = at(new Date(d.getTime() + 864e5), 7);
+    const a = Math.max(0, pct(dusk)), b = Math.min(100, pct(dawn));
+    if (b > a) {
+      const n = document.createElement('div');
+      n.className = 'night';
+      n.style.cssText = `left:${a}%;width:${b - a}%`;
+      r.appendChild(n);
+    }
+    const mark = document.createElement('div');
+    mark.className = 'daymark';
+    mark.style.left = Math.max(0, pct(at(d, 0))) + '%';
+    r.appendChild(mark);
+    const lab = document.createElement('div');
+    lab.className = 'daylabel';
+    lab.style.left = Math.max(0, pct(at(d, 0))) + '%';
+    lab.textContent = d.toLocaleDateString('en-GB', { weekday: 'short' });
+    r.appendChild(lab);
+  }
+
+  for (const s of state.plan?.steps ?? []) {
+    const w = document.createElement('div');
+    w.className = 'band w' + (s.optional ? ' opt' : '') + (state.done.has(s.step) ? ' done' : '');
+    w.style.cssText = `left:${pct(s.start)}%;width:${Math.max(0.5, pct(s.end) - pct(s.start))}%`;
+    w.title = `${s.name} — ${s.work_minutes} min of work`;
+    r.appendChild(w);
+    if (s.dwell_minutes > 0) {
+      const d = document.createElement('div');
+      d.className = 'band d' + (s.optional ? ' opt' : '');
+      d.style.cssText = `left:${pct(s.end)}%;width:${Math.max(0.4, pct(s.ready_at) - pct(s.end))}%`;
+      d.title = `${s.name} — ${Math.round(s.dwell_minutes / 60)}h drying`;
+      r.appendChild(d);
+    }
+  }
+
+  const now = document.createElement('div');
+  now.className = 'now';
+  now.style.left = Math.min(100, Math.max(0, pct(state.now))) + '%';
+  r.appendChild(now);
+
+  el('ribbonSpan').textContent = state.plan
+    ? `${Math.round(state.plan.hands_on_minutes / 60 * 10) / 10}h working · ${Math.round(state.plan.waiting_minutes / 60)}h waiting`
+    : '';
+}
+
+/* --------------------------------------------------------------- speaking */
+function say(text, { small = false } = {}) {
+  const s = el('speech');
+  s.className = 'speech' + (small || text.length > 90 ? ' small' : '');
+  s.textContent = text;
+  el('device').classList.add('listening');
+  setTimeout(() => el('device').classList.remove('listening'), 900);
+  if (speakOn && window.speechSynthesis) {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text.replace(/—/g, ','));
+    u.rate = 1.02; u.pitch = 1.0;
+    speechSynthesis.speak(u);
+  }
+}
+
+/* ------------------------------------------------------------- the cards */
+const hrs = (m) => Math.round(m / 60 * 10) / 10;
+
+function drawCard(kind, data) {
+  const c = el('card');
+  c.innerHTML = '';
+  const box = document.createElement('div');
+  box.className = 'card';
+
+  if (kind === 'timeline' && data.steps) {
+    box.innerHTML = `<div class="facts">
+      <div class="fact work"><span class="n">${hrs(data.hands_on_minutes)}h</span><span class="l">your hands on it</span></div>
+      <div class="fact dwell"><span class="n">${Math.round(data.waiting_minutes / 60)}h</span><span class="l">waiting for it to dry</span></div>
+      <div class="fact"><span class="n">${data.steps.length}</span><span class="l">steps</span></div>
+    </div>`;
+  } else if (kind === 'waiting' && data.curing?.length) {
+    const c0 = data.curing[0];
+    const h = Math.floor(c0.ready_in_minutes / 60), m = c0.ready_in_minutes % 60;
+    box.innerHTML = `<div class="countdown">${h > 0 ? h + 'h ' : ''}${m}m <small>until ${c0.name.toLowerCase()} is ready</small></div>`;
+  } else if (kind === 'step' && data.now_do) {
+    box.innerHTML = `<div class="facts">
+      <div class="fact work"><span class="n">${data.now_do.work_minutes}m</span><span class="l">hands on</span></div>
+      ${data.now_do.dwell_minutes ? `<div class="fact dwell"><span class="n">${hrs(data.now_do.dwell_minutes)}h</span><span class="l">then it waits</span></div>` : ''}
+      <div class="fact"><span class="n">${data.remaining_steps}</span><span class="l">left after this</span></div>
+    </div>`;
+  } else if (kind === 'shopping' && data.lines) {
+    const ul = document.createElement('ul');
+    ul.className = 'shop';
+    for (const l of data.lines) {
+      const li = document.createElement('li');
+      li.innerHTML = `<span class="qty">${l.short > 0 ? l.short : '✓'}</span>
+        <span class="what">${l.name}${l.short > 0 ? ` <span class="have">${l.unit}</span>` : ''}</span>
+        <span class="have">${l.have > 0 ? `${l.have} in the cupboard` : ''}</span>`;
+      ul.appendChild(li);
+    }
+    box.appendChild(ul);
+  } else if (kind === 'answer' && typeof data.fits === 'boolean') {
+    box.innerHTML = `<div class="facts">
+      <div class="fact work"><span class="n">${fmtShort(data.hands_off_at)}</span><span class="l">you stop working</span></div>
+      <div class="fact dwell"><span class="n">${fmtShort(data.usable_at)}</span><span class="l">room is usable</span></div>
+    </div>`;
+  }
+  c.appendChild(box);
+}
+const fmtShort = (iso) => iso
+  ? new Date(iso).toLocaleString('en-GB', { weekday: 'short', hour: 'numeric', hour12: true }).replace(',', '')
+  : '—';
+
+/* ------------------------------------------------------- driving the demo */
+function applyResult(r) {
+  const meta = r._meta?.['dwell/ui'] ?? {};
+  const data = r.structuredContent ?? {};
+  say(r.content[0].text);
+  if (data.steps) {
+    state.plan = data;
+    const ends = data.steps.map((x) => new Date(x.ready_at).getTime());
+    if (ends.length) {
+      state.spanTo = new Date(Math.max(at(SUN, 23).getTime(), Math.max(...ends) + 36e5));
+    }
+    el('sub').textContent = data.title
+      ? `${data.title} · job ${data.job.replace('-', ' ')} · every figure below came back from the server.`
+      : el('sub').textContent;
+  }
+  if (data.job) el('jobcode').textContent = data.job.replace('-', ' ');
+  drawCard(meta.card, data);
+  drawRibbon();
+  renderSays();
+}
+
+const SAYS = [];
+function renderSays() {
+  const wrap = el('says');
+  wrap.innerHTML = '';
+  for (const s of SAYS) {
+    if (s.when && !s.when()) continue;
+    const b = document.createElement('button');
+    b.textContent = s.text;
+    b.onclick = async () => {
+      [...wrap.children].forEach((c) => (c.disabled = true));
+      try { await s.run(); } catch (e) { say(`The server said: ${e.message}`); }
+      renderSays();
+    };
+    wrap.appendChild(b);
+  }
+}
+
+const nowArg = () => isoOff(state.now);
+
+SAYS.push({
+  text: 'Alexa, I want to paint the back bedroom this weekend. I am free Saturday nine to six and Sunday ten to four.',
+  when: () => !state.job,
+  run: async () => {
+    const r = await mcp.call('start_job', {
+      procedure: 'paint-a-room', free: FREE, tz: TZ,
+      room: { lengthM: 4, widthM: 3.5, heightM: 2.4, openingsM2: 4 },
+    });
+    state.job = r.structuredContent.job;
+    applyResult(r);
+  },
+});
+SAYS.push({
+  text: 'What do I need to buy? I have got five litres of emulsion already.',
+  when: () => !!state.job,
+  run: async () => applyResult(await mcp.call('what_to_buy', { have: { 'Wall emulsion': 5 } })),
+});
+SAYS.push({
+  text: 'What am I doing right now?',
+  when: () => !!state.job,
+  run: async () => applyResult(await mcp.call('whats_next', { now: nowArg() })),
+});
+SAYS.push({
+  text: 'Done the filling.',
+  when: () => !!state.job && !state.done.has('fill'),
+  run: async () => {
+    state.done.add('clear'); state.done.add('fill');
+    await mcp.call('mark_done', { step: 'clear', finished_at: isoOff(at(SAT, 9, 45)) });
+    applyResult(await mcp.call('mark_done', { step: 'fill', finished_at: nowArg() }));
+  },
+});
+SAYS.push({
+  text: 'It is freezing in here and the windows are shut.',
+  when: () => !!state.job,
+  run: async () => applyResult(await mcp.call('change_the_plan', {
+    conditions: { tempC: 9, humidityPct: 85, ventilated: false },
+  })),
+});
+SAYS.push({
+  text: 'Alright, I have put the heating on and opened a window.',
+  when: () => !!state.job,
+  run: async () => applyResult(await mcp.call('change_the_plan', {
+    conditions: { tempC: 20, humidityPct: 50, ventilated: true },
+  })),
+});
+SAYS.push({
+  text: 'Will the room be usable by Sunday teatime?',
+  when: () => !!state.job,
+  run: async () => applyResult(await mcp.call('can_i_finish_by', { by: isoOff(at(SUN, 18)) })),
+});
+SAYS.push({
+  text: 'I just need to be finished working by then. Does that change it?',
+  when: () => !!state.job,
+  run: async () => applyResult(await mcp.call('can_i_finish_by', {
+    by: isoOff(at(SUN, 18)), measure: 'handsOff',
+  })),
+});
+
+/* -------------------------------------------------------------- the scrub */
+el('scrub').addEventListener('input', (e) => {
+  const from = state.spanFrom.getTime(), to = state.spanTo.getTime();
+  state.now = new Date(from + (to - from) * (e.target.value / 100));
+  el('clock').textContent = fmtClock(state.now);
+  el('scrubAt').textContent = fmtClock(state.now);
+  drawRibbon();
+});
+el('scrub').addEventListener('change', async () => {
+  if (state.job) applyResult(await mcp.call('whats_next', { now: nowArg() }));
+});
+
+el('speakBtn').onclick = (e) => {
+  speakOn = !speakOn;
+  e.target.setAttribute('aria-pressed', String(speakOn));
+  if (!speakOn) speechSynthesis?.cancel();
+};
+el('wireBtn').onclick = (e) => {
+  showWire = !showWire;
+  e.target.setAttribute('aria-pressed', String(showWire));
+  el('wirePanel').style.display = showWire ? '' : 'none';
+};
+
+/* ------------------------------------------------------------------ start */
+el('endpointLink').href = ENDPOINT;
+el('clock').textContent = fmtClock(state.now);
+el('scrubAt').textContent = fmtClock(state.now);
+drawRibbon();
+renderSays();
+
+(async () => {
+  try {
+    const r = await mcp.connect();
+    el('dot').className = 'dot live';
+    el('statusText').textContent = `${r.serverInfo.name} ${r.serverInfo.version} · MCP ${r.protocolVersion}`;
+  } catch (e) {
+    el('dot').className = 'dot bad';
+    el('statusText').textContent = 'could not reach the server';
+    el('sub').textContent = 'The MCP server did not answer. Everything on this page comes from it, so nothing will move until it does.';
+  }
+})();
+</script>
+</body>
+</html>

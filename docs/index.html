@@ -603,7 +603,7 @@ function renderSays() {
 const nowArg = () => isoOff(state.now);
 
 SAYS.push({
-  text: 'Alexa, I want to paint the back bedroom this weekend. I am free Saturday nine to six and Sunday ten to four.',
+  text: 'Alexa, I want to paint the back bedroom this weekend. I am free Saturday nine to six and Sunday ten to five.',
   when: () => !state.job,
   run: async () => {
     const r = await mcp.call('start_job', {

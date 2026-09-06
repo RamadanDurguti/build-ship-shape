@@ -70,8 +70,14 @@ export function durationWords(min) {
   const h = Math.floor(min / 60);
   const m = Math.round(min % 60);
   if (h >= 24) {
-    const d = Math.round(min / DAY);
-    return d === 1 ? 'a day' : `${d} days`;
+    // "A day" for twenty-nine hours throws away the five hours that decide
+    // whether the job lands on Sunday night or Monday morning.
+    const d = Math.floor(min / DAY);
+    const rest = Math.round((min % DAY) / 60);
+    const days = d === 1 ? 'a day' : `${d} days`;
+    if (rest === 0) return days;
+    if (rest >= 11 && rest <= 13) return d === 1 ? 'a day and a half' : `${d} and a half days`;
+    return `${days} and ${rest} ${rest === 1 ? 'hour' : 'hours'}`;
   }
   if (m === 0) return h === 1 ? 'an hour' : `${h} hours`;
   if (m === 30) return h === 1 ? 'an hour and a half' : `${h} and a half hours`;

@@ -3,11 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2316130f'/%3E%3Crect x='5' y='13' width='9' height='6' rx='1.5' fill='%23e8a33d'/%3E%3Crect x='16' y='13' width='11' height='6' rx='1.5' fill='none' stroke='%237fa8b8' stroke-width='1.6' stroke-dasharray='2.4 2'/%3E%3C/svg%3E">
 <title>Dwell — an Alexa+ experience for jobs that spend their time waiting</title>
 <meta name="description" content="A simulated Alexa+ screen driving a real self-hosted MCP server. Move the clock and hear what the device would say.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* ---------------------------------------------------------------------------
    Two kinds of time, two colours, and the whole design follows from that.
@@ -31,6 +29,9 @@
   --dwell:      #7fa8b8;   /* the room, working without you */
   --dwell-soft: #33505c;
 
+  --serif: ui-serif, Charter, "Bitstream Charter", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Carlito, Helvetica, sans-serif;
+
   --radius: 22px;
   --shadow: 0 30px 70px -30px rgba(0,0,0,.9);
 }
@@ -43,7 +44,7 @@ body {
     radial-gradient(120% 90% at 50% -10%, #241f19 0%, var(--ink) 55%) fixed,
     var(--ink);
   color: var(--paper);
-  font: 400 16px/1.55 Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font: 400 16px/1.55 var(--sans);
   -webkit-font-smoothing: antialiased;
   display: flex;
   flex-direction: column;
@@ -54,10 +55,10 @@ body {
 header {
   width: 100%; max-width: 1180px;
   display: flex; align-items: baseline; gap: 16px;
-  padding: 26px 24px 10px;
+  padding: 20px 24px 8px;
 }
 .brand {
-  font-family: Fraunces, Georgia, serif;
+  font-family: var(--serif);
   font-weight: 600; font-size: 21px; letter-spacing: .01em;
 }
 .brand span { color: var(--work); }
@@ -86,7 +87,7 @@ main {
   box-shadow: var(--shadow);
   overflow: hidden;
   position: relative;
-  min-height: 520px;
+  min-height: 470px;
   display: flex; flex-direction: column;
 }
 /* The soft glow along the bottom edge of a screen that is listening. */
@@ -110,24 +111,26 @@ main {
   color: var(--work); text-transform: uppercase;
 }
 
-.stage { padding: 34px 34px 26px; flex: 1; display: flex; flex-direction: column; gap: 22px; }
+.stage { padding: 26px 32px 20px; flex: 1; display: flex; flex-direction: column; gap: 18px; }
 
 /* The line the device says. Serif on purpose: it is speech, not interface. */
 .speech {
-  font-family: Fraunces, Georgia, serif;
+  font-family: var(--serif);
   font-weight: 300;
   font-size: clamp(23px, 3.1vw, 34px);
   line-height: 1.28;
   letter-spacing: -.01em;
   margin: 0;
   max-width: 22ch;
-  min-height: 2.4em;
+  min-height: 1.3em;
 }
-.speech.small { font-size: clamp(19px, 2.2vw, 25px); max-width: 30ch; }
+.speech.small { font-size: clamp(20px, 2.4vw, 27px); max-width: 26ch; }
+.rest {
+  font-size: 15.5px; line-height: 1.6; color: var(--paper-dim);
+  max-width: 54ch; margin: -6px 0 0;
+}
 .speech em { font-style: normal; color: var(--work); }
 .speech .cool { color: var(--dwell); }
-
-.sub { color: var(--paper-dim); font-size: 14.5px; max-width: 46ch; margin: -8px 0 0; }
 
 /* -------------------------------------------------------------- the cards */
 .card { animation: rise .45s cubic-bezier(.2,.7,.2,1) both; }
@@ -135,23 +138,23 @@ main {
 
 .countdown {
   display: flex; align-items: baseline; gap: 14px;
-  font-family: Fraunces, Georgia, serif; font-weight: 300;
+  font-family: var(--serif); font-weight: 300;
   font-size: clamp(46px, 8vw, 84px); line-height: 1; color: var(--dwell);
 }
-.countdown small { font-size: 15px; font-family: Inter, sans-serif; color: var(--paper-faint); letter-spacing: .04em; }
+.countdown small { font-size: 15px; font-family: var(--sans); color: var(--paper-faint); letter-spacing: .04em; }
 
 .shop { list-style: none; margin: 0; padding: 0; max-width: 460px; }
 .shop li {
   display: flex; align-items: baseline; gap: 14px;
   padding: 11px 0; border-bottom: 1px solid rgba(255,255,255,.06);
 }
-.shop .qty { font-family: Fraunces, serif; font-size: 26px; color: var(--work); min-width: 4.2ch; }
+.shop .qty { font-family: var(--serif); font-size: 26px; color: var(--work); min-width: 4.2ch; }
 .shop .what { flex: 1; }
 .shop .have { color: var(--paper-faint); font-size: 13px; }
 
 .facts { display: flex; gap: 34px; flex-wrap: wrap; }
 .fact .n {
-  font-family: Fraunces, serif; font-weight: 300; font-size: 34px; line-height: 1.1;
+  font-family: var(--serif); font-weight: 300; font-size: 34px; line-height: 1.1;
   display: block;
 }
 .fact.work .n  { color: var(--work); }
@@ -161,18 +164,18 @@ main {
 /* ------------------------------------------------------------- the ribbon */
 /* The signature object. The whole job as one strip: solid where your hands
    are on it, translucent where the room is working without you. */
-.ribbon-wrap { margin-top: auto; }
+.ribbon-wrap { margin-top: auto; padding-top: 6px; }
 .ribbon-head {
   display: flex; justify-content: space-between; align-items: baseline;
   font-size: 11.5px; letter-spacing: .09em; text-transform: uppercase;
   color: var(--paper-faint); margin-bottom: 9px;
 }
 .ribbon {
-  position: relative; height: 46px; border-radius: 8px;
+  position: relative; height: 62px; border-radius: 9px;
   background: rgba(255,255,255,.035);
   overflow: hidden;
 }
-.ribbon .band { position: absolute; top: 10px; height: 26px; border-radius: 3px; }
+.ribbon .band { position: absolute; top: 15px; height: 34px; border-radius: 3px; }
 .ribbon .band.w { background: var(--work); box-shadow: 0 0 0 1px rgba(0,0,0,.25) inset; }
 .ribbon .band.d {
   background: repeating-linear-gradient(115deg,
@@ -181,7 +184,15 @@ main {
 }
 .ribbon .band.opt { opacity: .38; }
 .ribbon .band.done { filter: grayscale(.7) brightness(.6); }
-.ribbon .night { position: absolute; inset: 0 auto; top: 0; height: 100%; background: rgba(0,0,0,.28); }
+.ribbon .night {
+  position: absolute; top: 0; height: 100%;
+  background: rgba(0,0,0,.5);
+  box-shadow: inset 1px 0 0 rgba(255,255,255,.05), inset -1px 0 0 rgba(255,255,255,.05);
+}
+.ribbon .nightlabel {
+  position: absolute; bottom: 3px; font-size: 9.5px; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--paper-faint); transform: translateX(-50%);
+}
 .ribbon .daymark { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(255,255,255,.13); }
 .ribbon .daylabel { position: absolute; top: 3px; font-size: 10px; color: var(--paper-faint); padding-left: 5px; letter-spacing: .05em; }
 .ribbon .now { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--paper); box-shadow: 0 0 12px rgba(244,239,230,.8); }
@@ -192,7 +203,7 @@ main {
 .legend .d i { background: repeating-linear-gradient(115deg, var(--dwell-soft) 0 4px, transparent 4px 8px); border: 1px solid var(--dwell-soft); }
 
 /* ------------------------------------------------------------- the clock */
-.controls { margin-top: 22px; }
+.controls { margin-top: 16px; }
 .scrub-label {
   display: flex; justify-content: space-between; font-size: 11.5px;
   letter-spacing: .09em; text-transform: uppercase; color: var(--paper-faint); margin-bottom: 8px;
@@ -214,7 +225,7 @@ input[type=range]::-moz-range-thumb {
   width: 16px; height: 16px; border-radius: 50%; background: var(--paper); border: none;
 }
 
-.says { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+.says { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .says button {
   background: rgba(255,255,255,.04); border: 1px solid var(--line);
   color: var(--paper); border-radius: 999px; padding: 9px 16px;
@@ -277,7 +288,7 @@ footer a { color: var(--dwell); }
 
       <div class="stage">
         <p class="speech" id="speech">Say what you are doing this weekend.</p>
-        <p class="sub" id="sub">This screen is a stand-in for an Echo Show. Everything on it comes back from a real MCP server over Streamable HTTP — nothing here is scripted.</p>
+        <p class="rest" id="rest">A stand-in for an Echo Show. Everything on this screen comes back from a real MCP server over Streamable HTTP — nothing here is scripted.</p>
         <div id="card"></div>
 
         <div class="ribbon-wrap">
@@ -324,7 +335,10 @@ footer a { color: var(--dwell); }
    over the wire is visible in the panel on the right. Initialize once, keep
    the session id, send the protocol version on everything after that.
 --------------------------------------------------------------------------- */
-const ENDPOINT = 'https://qsgtymzjelteotcjkbol.supabase.co/functions/v1/dwell-mcp';
+// Defaults to the deployed server; `?server=` points it at any other one,
+// which is how the same page drives a local `node server/local.js`.
+const ENDPOINT = new URLSearchParams(location.search).get('server')
+  || 'https://qsgtymzjelteotcjkbol.supabase.co/functions/v1/dwell-mcp';
 const PROTOCOL = '2025-11-25';
 
 const el = (id) => document.getElementById(id);
@@ -336,7 +350,8 @@ function logWire(method, payload, kind = 'call') {
   li.innerHTML = `<span class="${kind === 'call' ? 'm' : 'ok'}">${kind === 'call' ? '→' : '←'} ${method}</span>`;
   if (payload) {
     const pre = document.createElement('pre');
-    pre.textContent = typeof payload === 'string' ? payload : JSON.stringify(payload, null, 1);
+    const text = typeof payload === 'string' ? payload : JSON.stringify(payload, null, 1);
+    pre.textContent = text.length > 700 ? text.slice(0, 700) + '\n  …' : text;
     li.appendChild(pre);
   }
   wireList.prepend(li);
@@ -400,7 +415,7 @@ const at = (base, h, m = 0) => { const d = new Date(base); d.setHours(h, m, 0, 0
 
 const FREE = [
   { start: isoOff(at(SAT, 9)),  end: isoOff(at(SAT, 18)) },
-  { start: isoOff(at(SUN, 10)), end: isoOff(at(SUN, 16)) },
+  { start: isoOff(at(SUN, 10)), end: isoOff(at(SUN, 17)) },
 ];
 const TZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
@@ -425,19 +440,31 @@ function drawRibbon() {
   for (let d = new Date(state.spanFrom); d < state.spanTo; d.setDate(d.getDate() + 1)) {
     const dusk = at(d, 20), dawn = at(new Date(d.getTime() + 864e5), 7);
     const a = Math.max(0, pct(dusk)), b = Math.min(100, pct(dawn));
-    if (b > a) {
+    if (b > a + 0.5) {
       const n = document.createElement('div');
       n.className = 'night';
       n.style.cssText = `left:${a}%;width:${b - a}%`;
       r.appendChild(n);
+      // Naming the night matters: it is where most of the drying happens, and
+      // the point of the whole strip is that those hours are not wasted.
+      if (b - a > 7 && (a + b) / 2 < 92) {
+        const nl = document.createElement('div');
+        nl.className = 'nightlabel';
+        nl.style.left = (a + b) / 2 + '%';
+        nl.textContent = 'overnight';
+        r.appendChild(nl);
+      }
     }
-    const mark = document.createElement('div');
-    mark.className = 'daymark';
-    mark.style.left = Math.max(0, pct(at(d, 0))) + '%';
-    r.appendChild(mark);
+    const dayAt = pct(at(d, 0));
+    if (dayAt > 0.5 && dayAt < 99) {
+      const mark = document.createElement('div');
+      mark.className = 'daymark';
+      mark.style.left = dayAt + '%';
+      r.appendChild(mark);
+    }
     const lab = document.createElement('div');
     lab.className = 'daylabel';
-    lab.style.left = Math.max(0, pct(at(d, 0))) + '%';
+    lab.style.left = Math.max(0.5, dayAt) + '%';
     lab.textContent = d.toLocaleDateString('en-GB', { weekday: 'short' });
     r.appendChild(lab);
   }
@@ -468,10 +495,17 @@ function drawRibbon() {
 }
 
 /* --------------------------------------------------------------- speaking */
-function say(text, { small = false } = {}) {
+function say(text) {
+  // The first sentence is the answer; everything after it is supporting
+  // detail. On a screen you read across a kitchen, only the first one can be
+  // big — but the device still says the whole thing.
+  const cut = text.search(/(?<=[.!?])\s+(?=[A-Z0-9])/);
+  const lead = cut > 24 ? text.slice(0, cut) : text;
+  const rest = cut > 24 ? text.slice(cut).trim() : '';
   const s = el('speech');
-  s.className = 'speech' + (small || text.length > 90 ? ' small' : '');
-  s.textContent = text;
+  s.className = 'speech' + (lead.length > 78 ? ' small' : '');
+  s.textContent = lead;
+  el('rest').textContent = rest;
   el('device').classList.add('listening');
   setTimeout(() => el('device').classList.remove('listening'), 900);
   if (speakOn && window.speechSynthesis) {
@@ -541,9 +575,7 @@ function applyResult(r) {
     if (ends.length) {
       state.spanTo = new Date(Math.max(at(SUN, 23).getTime(), Math.max(...ends) + 36e5));
     }
-    el('sub').textContent = data.title
-      ? `${data.title} · job ${data.job.replace('-', ' ')} · every figure below came back from the server.`
-      : el('sub').textContent;
+
   }
   if (data.job) el('jobcode').textContent = data.job.replace('-', ' ');
   drawCard(meta.card, data);
@@ -575,7 +607,7 @@ SAYS.push({
   when: () => !state.job,
   run: async () => {
     const r = await mcp.call('start_job', {
-      procedure: 'paint-a-room', free: FREE, tz: TZ,
+      procedure: 'paint-a-room', free: FREE, tz: TZ, now: nowArg(),
       room: { lengthM: 4, widthM: 3.5, heightM: 2.4, openingsM2: 4 },
     });
     state.job = r.structuredContent.job;
@@ -585,7 +617,7 @@ SAYS.push({
 SAYS.push({
   text: 'What do I need to buy? I have got five litres of emulsion already.',
   when: () => !!state.job,
-  run: async () => applyResult(await mcp.call('what_to_buy', { have: { 'Wall emulsion': 5 } })),
+  run: async () => applyResult(await mcp.call('what_to_buy', { have: { 'Wall emulsion': 5 }, now: nowArg() })),
 });
 SAYS.push({
   text: 'What am I doing right now?',
@@ -597,34 +629,34 @@ SAYS.push({
   when: () => !!state.job && !state.done.has('fill'),
   run: async () => {
     state.done.add('clear'); state.done.add('fill');
-    await mcp.call('mark_done', { step: 'clear', finished_at: isoOff(at(SAT, 9, 45)) });
-    applyResult(await mcp.call('mark_done', { step: 'fill', finished_at: nowArg() }));
+    await mcp.call('mark_done', { step: 'clear', finished_at: isoOff(at(SAT, 9, 45)), now: nowArg() });
+    applyResult(await mcp.call('mark_done', { step: 'fill', finished_at: nowArg(), now: nowArg() }));
   },
 });
 SAYS.push({
   text: 'It is freezing in here and the windows are shut.',
   when: () => !!state.job,
   run: async () => applyResult(await mcp.call('change_the_plan', {
-    conditions: { tempC: 9, humidityPct: 85, ventilated: false },
+    conditions: { tempC: 9, humidityPct: 85, ventilated: false }, now: nowArg(),
   })),
 });
 SAYS.push({
   text: 'Alright, I have put the heating on and opened a window.',
   when: () => !!state.job,
   run: async () => applyResult(await mcp.call('change_the_plan', {
-    conditions: { tempC: 20, humidityPct: 50, ventilated: true },
+    conditions: { tempC: 20, humidityPct: 50, ventilated: true }, now: nowArg(),
   })),
 });
 SAYS.push({
   text: 'Will the room be usable by Sunday teatime?',
   when: () => !!state.job,
-  run: async () => applyResult(await mcp.call('can_i_finish_by', { by: isoOff(at(SUN, 18)) })),
+  run: async () => applyResult(await mcp.call('can_i_finish_by', { by: isoOff(at(SUN, 18)), now: nowArg() })),
 });
 SAYS.push({
   text: 'I just need to be finished working by then. Does that change it?',
   when: () => !!state.job,
   run: async () => applyResult(await mcp.call('can_i_finish_by', {
-    by: isoOff(at(SUN, 18)), measure: 'handsOff',
+    by: isoOff(at(SUN, 18)), measure: 'handsOff', now: nowArg(),
   })),
 });
 
@@ -666,7 +698,7 @@ renderSays();
   } catch (e) {
     el('dot').className = 'dot bad';
     el('statusText').textContent = 'could not reach the server';
-    el('sub').textContent = 'The MCP server did not answer. Everything on this page comes from it, so nothing will move until it does.';
+    el('rest').textContent = 'The MCP server did not answer. Everything on this page comes from it, so nothing will move until it does.';
   }
 })();
 </script>

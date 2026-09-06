@@ -1,0 +1,10 @@
+{
+  "name": "dwell",
+  "version": "1.0.0",
+  "description": "An Alexa+ MCP server for domestic jobs that spend most of their time waiting.",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "test": "node tests/core.test.js && node tests/server.test.js"
+  }
+}

@@ -122,7 +122,11 @@ export const TOOLS = [
     description:
       'The jobs Dwell knows how to schedule, and what each one involves. Call this if '
       + 'the person has not named something recognisable.',
-    inputSchema: { type: 'object', additionalProperties: false },
+    inputSchema: {
+      type: 'object',
+      properties: { now: { type: 'string', description: 'ISO 8601 now, if not the server clock.' } },
+      additionalProperties: false,
+    },
     outputSchema: {
       type: 'object', properties: { jobs: { type: 'array', items: { type: 'object' } } },
       required: ['jobs'], additionalProperties: false,
@@ -144,6 +148,7 @@ export const TOOLS = [
         tz: { type: 'string', description: 'IANA time zone of the room, e.g. Europe/Belgrade.' },
         conditions: CONDITIONS,
         room: ROOM,
+        now: { type: 'string', description: 'ISO 8601 now, if not the server clock.' },
       },
       required: ['procedure', 'free'], additionalProperties: false,
     },
@@ -191,6 +196,7 @@ export const TOOLS = [
         step: { type: 'string', description: 'The step id, from the plan.' },
         job: { type: 'string' },
         finished_at: { type: 'string', description: 'ISO 8601. Defaults to now.' },
+        now: { type: 'string', description: 'ISO 8601 now, if not the server clock.' },
       },
       required: ['step'], additionalProperties: false,
     },
@@ -210,6 +216,7 @@ export const TOOLS = [
         skip: { type: 'array', items: { type: 'string' },
                 description: 'Step ids the person has decided not to do.' },
         unskip: { type: 'array', items: { type: 'string' } },
+        now: { type: 'string', description: 'ISO 8601 now, if not the server clock.' },
       },
       additionalProperties: false,
     },
@@ -235,6 +242,7 @@ export const TOOLS = [
             'usable: the last coat has cured and the room is back in use. handsOff: the '
             + 'person has stopped working and can leave it to dry. Default usable.',
         },
+        now: { type: 'string', description: 'ISO 8601 now, if not the server clock.' },
       },
       required: ['by'], additionalProperties: false,
     },
@@ -267,6 +275,7 @@ export const TOOLS = [
           type: 'object', description: 'What is already in the cupboard, by material name.',
           additionalProperties: { type: 'number' },
         },
+        now: { type: 'string', description: 'ISO 8601 now, if not the server clock.' },
       },
       additionalProperties: false,
     },
@@ -477,7 +486,11 @@ export function createTools(store) {
           const usable = sched.planFinish(f.plan);
 
           let spoken;
-          if (f.fits && !f.dropped.length) {
+          if (f.impossible) {
+            spoken = 'No — it does not fit at all. '
+              + `${f.plan.unplaceable.map(nameOf(proc)).slice(0, 2).join(' and ')} `
+              + 'has nowhere to go in the hours you have. You need more time, not less work.';
+          } else if (f.fits && !f.dropped.length) {
             spoken = 'Yes, comfortably. ' + (measure === 'handsOff'
               ? `You would be done ${whenWords(handsOff, now, job.tz)}.`
               : `The room is back ${whenWords(usable, now, job.tz)}.`);
@@ -492,7 +505,7 @@ export function createTools(store) {
           }
           // The most useful sentence in the whole product: you were finished
           // hours ago, it is the paint that is still going.
-          if (measure === 'usable' && !f.fits && handsOff && handsOff <= by) {
+          if (measure === 'usable' && !f.fits && !f.impossible && handsOff && handsOff <= by) {
             spoken += ` You would have stopped working by ${clockWords(handsOff, job.tz)} though — `
               + 'it is the drying that runs over, not you.';
           }
@@ -566,7 +579,7 @@ function spokenPlan(plan, proc, job, now) {
     bits.push(`${plan.wontFit.map(nameOf(proc)).join(' and ')} will not fit — leave that for another day.`);
   }
   const first = plan.placed[0];
-  if (first) bits.push(`Start with ${first.name.toLowerCase()}, ${whenWords(first.workStart, now, tz)}.`);
+  if (first) bits.push(`First job, ${whenWords(first.workStart, now, tz)}: ${first.name.toLowerCase()}.`);
   bits.push(`Job code is ${job.code.replace('-', ' ')}.`);
   return bits.join(' ');
 }

@@ -148,7 +148,8 @@ export function createApp(store, { uuid = () => crypto.randomUUID() } = {}) {
         // what this is instead of returning a bare 405 at a human.
         return json({
           server: SERVER, protocol: LATEST, transport: 'streamable-http',
-          endpoint: url.origin + url.pathname,
+          endpoint: (req.headers.get('x-forwarded-proto') ?? url.protocol.replace(':', ''))
+            + '://' + (req.headers.get('host') ?? url.host) + url.pathname,
           tools: TOOLS.map((t) => t.name),
           note: 'This is an MCP endpoint. Point an MCP client at it, or open the demo client.',
         }, 200, origin);
